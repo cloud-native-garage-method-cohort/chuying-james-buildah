@@ -4,6 +4,7 @@ resources:
 - deployment.yaml
 - service.yaml
 - route.yaml
+- https://raw.githubusercontent.com/tektoncd/catalog/main/task/npm/0.1/npm.yaml
 images:
 - name: quay.io/upslopeio/express-sample-app
   newName: quay.io/chuuuing/self-study-repo

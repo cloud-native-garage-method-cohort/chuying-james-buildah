@@ -4,9 +4,15 @@ metadata:
   name: nodejs
 spec:
   params:
+    - name: app-name
+      type: string
+      description: Application name
     - name: source-repo
       type: string
       description: Source code repository
+    - name: repo-branch
+      type: string
+      description: Branch of source code repository 
     - name: image-repo
       type: string
       description: Docker image repository
@@ -16,6 +22,8 @@ spec:
       params:
       - name: url
         value: "$(params.source-repo)"
+      - name: revision
+        value: "$(params.repo-branch)"
       taskRef:
         name: git-clone
         kind: ClusterTask
