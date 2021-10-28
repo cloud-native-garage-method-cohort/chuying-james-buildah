@@ -6,9 +6,9 @@ kind: EventListener
 metadata:
   name: webhook-receiver
 spec:
-  ServiceAccountName: webhook-receiver
+  serviceAccountName: webhook-receiver
   triggers:
-    - template: 
+    - template:
         name: webhook-receiver
       bindings:
         - ref: webhook-receiver
@@ -21,7 +21,12 @@ kind: TriggerTemplate
 metadata:
   name: webhook-receiver
 spec:
-# The following part is the same as xxx.PipelineRun.yaml
+  params:	
+    - name: source-repo	
+      description: Source code repository	
+    - name: sha	
+      description: Precise SHA of the commit to build
+  # The following part is the same as xxx.PipelineRun.yaml
   resourcetemplates:  
     - apiVersion: tekton.dev/v1beta1
       kind: PipelineRun
@@ -32,10 +37,12 @@ spec:
         params:
           - name: app-name
             value: express-sample-app
-          - name: image-repo
-            value: quay.io/<your-account>/express-sample-app
           - name: source-repo
-            value: https://github.com/<your-account>/express-sample-app.git
+            value: https://github.com/cloud-native-garage-method-cohort/chuying-james-buildah
+          - name: repo-branch
+            value: chuying-self-study
+          - name: image-repo
+            value: quay.io/chuuuing/self-study-repo
         pipelineRef:
           name: nodejs
         workspaces:
@@ -56,6 +63,12 @@ apiVersion: triggers.tekton.dev/v1alpha1
 kind: TriggerBinding
 metadata:
   name: webhook-receiver
+spec:
+  params:
+  - name: source-repo
+    value: $(body.repository.url)
+  - name: sha
+    value: $(body.head_commit.id)
 
 # (4) Role
 # Add permissions to do everything the webhook receiver needs
