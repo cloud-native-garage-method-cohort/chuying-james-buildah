@@ -1,0 +1,128 @@
+# (1) EventListener
+# which is a declarative way to process incoming HTTP based events with JSON payloads 
+# (e.g.; using GitHub Webhooks)
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: EventListener
+metadata:
+  name: webhook-receiver
+spec:
+  ServiceAccountName: webhook-receiver
+  triggers:
+    - template: 
+        name: webhook-receiver
+      bindings:
+        - ref: webhook-receiver
+
+# (2) TriggerTemplate
+# to execute your PipelineRun from a git push
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: webhook-receiver
+spec:
+# The following part is the same as xxx.PipelineRun.yaml
+  resourcetemplates:  
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: express-sample-app-
+      spec:
+        serviceAccountName: build-bot
+        params:
+          - name: app-name
+            value: express-sample-app
+          - name: image-repo
+            value: quay.io/<your-account>/express-sample-app
+          - name: source-repo
+            value: https://github.com/<your-account>/express-sample-app.git
+        pipelineRef:
+          name: nodejs
+        workspaces:
+          - name: pipeline-shared-data
+            volumeClaimTemplate:
+              spec:
+                resources:
+                  requests:
+                    storage: 1Gi
+                accessModes:
+                  - ReadWriteOnce
+
+# (3) TriggerBinding
+# mapping: FROM webhook payload TO parameters
+# NOTE: The separation of TriggerBindings from TriggerTemplates was deliberate to encourage reuse between them.
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerBinding
+metadata:
+  name: webhook-receiver
+
+# (4) Role
+# Add permissions to do everything the webhook receiver needs
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: webhook-receiver
+rules:
+  - resources:
+      - eventlisteners
+      - triggerbindings
+      - triggertemplates
+    apiGroups:
+      - triggers.tekton.dev
+    verbs:
+      - get
+  - resources:
+      - pipelineruns
+      - pipelineresources
+    apiGroups:
+      - tekton.dev
+    verbs:
+      - create
+  - resources:
+      - configmaps
+    apiGroups:
+      - ""
+    verbs:
+      - list
+
+
+# (5) ServiceAccount
+# to handle the triggers.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: webhook-receiver
+
+# (6) RoleBinding
+# to bind the Role to the ServiceAccount
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: webhook-receiver
+roleRef:
+  name: webhook-receiver
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - name: webhook-receiver
+    kind: ServiceAccount
+
+# (7) Route
+# to route traffic to the EventListener
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: webhook-receiver
+spec:
+  port:
+    targetPort: 8080
+  to:
+    name: el-webhook-receiver
+    kind: Service
+    weight: 100
+
