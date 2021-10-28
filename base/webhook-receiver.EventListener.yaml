@@ -58,6 +58,7 @@ spec:
 # (3) TriggerBinding
 # mapping: FROM webhook payload TO parameters
 # NOTE: The separation of TriggerBindings from TriggerTemplates was deliberate to encourage reuse between them.
+# TriggerBindings can access values from the HTTP JSON body and the headers using JSONPath expressions wrapped in $()
 ---
 apiVersion: triggers.tekton.dev/v1alpha1
 kind: TriggerBinding
@@ -69,6 +70,7 @@ spec:
     value: $(body.repository.url)
   - name: sha
     value: $(body.head_commit.id)
+    
 
 # (4) Role
 # Add permissions to do everything the webhook receiver needs
